@@ -1,0 +1,15 @@
+opam-version: "2.0"
+synopsis: "A dependently-typed language"
+description: """
+A dependently-typed language with inductive types, case analysis, and
+type inference."""
+depends: [
+  "dune" {>= "3.19"}
+  "alcotest" {with-test}
+  "js_of_ocaml"
+  "js_of_ocaml-ppx" {with-test}
+]
+build: [
+  ["dune" "build" "-p" name]
+  ["dune" "runtest" "-p" name {with-test}]
+]

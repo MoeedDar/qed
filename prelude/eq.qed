@@ -1,0 +1,4 @@
+def Eq {A : Type} : A -> A -> Type
+| refl : (a : A) -> Eq A a a
+
+def (4 = 4) {A : Type} (a : A) (b : A) : Type := Eq a b

@@ -1,0 +1,8 @@
+.content-collections
+.tanstack
+.wrangler
+_build
+_scratch
+bun.lock
+dist
+node_modules

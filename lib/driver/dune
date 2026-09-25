@@ -1,0 +1,5 @@
+(library
+ (name driver)
+ (libraries
+ span diagnostics source syntax elaboration unification pretty core kernel
+ prelude))

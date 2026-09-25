@@ -1,0 +1,3 @@
+def Bool : Type
+| true : Bool
+| false : Bool

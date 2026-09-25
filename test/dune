@@ -1,0 +1,11 @@
+(executable
+ (name test_main)
+ (modules test_main support test_elaboration test_unification test_span
+   test_kernel)
+ (libraries alcotest core driver kernel prelude span))
+
+(rule
+ (alias runtest)
+ (deps test_main.exe)
+ (action
+  (run %{exe:test_main.exe})))

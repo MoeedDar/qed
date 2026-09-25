@@ -1,0 +1,64 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+
+  "formatter": {
+    "indentWidth": 2,
+    "indentStyle": "space",
+    "lineWidth": 80
+  },
+
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "style": {
+        "useBlockStatements": "error",
+        "useImportType": {
+          "level": "on",
+          "options": {
+            "style": "separatedType"
+          }
+        }
+      }
+    }
+  },
+
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "identifierOrder": "lexicographic",
+            "groups": [
+              { "type": false, "source": ":NODE:" },
+              { "type": false, "source": "bun" },
+              { "type": false, "source": "react" },
+              { "type": false, "source": "@tanstack/**" },
+              { "type": false, "source": ":PACKAGE:" },
+              ":BLANK_LINE:",
+              { "type": false, "source": "@/**" },
+              { "type": false, "source": "./**" },
+              { "type": false, "source": "../**" },
+              ":BLANK_LINE:",
+              { "type": true },
+              ":BLANK_LINE:",
+              "*.css"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

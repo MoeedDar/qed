@@ -1,0 +1,18 @@
+(library
+ (name diagnostics)
+ (modules diagnostics)
+ (libraries core span))
+
+ (library
+  (name occurrences)
+  (modules occurrences)
+  (libraries core span))
+
+ (library
+  (name span)
+  (modules span))
+
+ (library
+  (name source)
+  (modules source)
+  (libraries diagnostics occurrences span))

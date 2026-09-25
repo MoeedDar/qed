@@ -1,0 +1,3 @@
+(library
+ (name elaboration)
+ (libraries core kernel span occurrences source diagnostics syntax utils))

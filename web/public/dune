@@ -1,0 +1,5 @@
+(rule
+ (target lsp_js.js)
+ (deps ../../bin/lsp_js/lsp_js.bc.js)
+ (mode (promote (until-clean)))
+ (action (copy %{deps} %{target})))

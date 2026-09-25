@@ -1,0 +1,11 @@
+def Nat : Type
+| zero : Nat
+| succ : Nat -> Nat
+
+def (6 + 7) (a : Nat) (b : Nat) : Nat
+| zero => b
+| succ a => Nat.succ (a + b)
+
+def (7 * 8) (a : Nat) (b : Nat) : Nat
+| zero => Nat.zero
+| succ a => b + (a * b)
