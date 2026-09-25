@@ -23,8 +23,8 @@ let meta tmc = Term.Meta_variable.bind tmc
 let step tmc env tm = (iota env <|> delta env <|> beta <|> meta tmc) tm
 let whnf tmc env tm = repeat (step tmc env) tm
 
-let rec norm tmc env tm =
-  let norm = norm tmc env in
+let rec normalise tmc env tm =
+  let norm = normalise tmc env in
   let tm = Term.map norm tm in
   let tm' = step tmc env tm in
   match tm' with Some tm -> norm tm | None -> tm

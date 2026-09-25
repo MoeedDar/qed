@@ -1,5 +1,3 @@
-(* lib/elaboration/case.ml *)
-
 module Term = Core.Term
 module Level = Core.Level
 module Environment = Core.Environment
@@ -103,20 +101,6 @@ let set_self st recs =
       State.with_self st (Some { State.name; State.typ = ty; State.term = tm })
   | _ -> st
 
-(* The minor premise type is built piece by piece in the eliminator's own
-   role scope: parameters, motive, previous minors, then the branch's
-   argument and inductive-hypothesis binders. When checking a branch body
-   we work in the elaborator's local context, where only the argument/IH
-   binders exist as local variables. So in each piece of the minor type:
-   - variables pointing at parameter/motive/minor roles are substituted
-     with the concrete terms being applied to the eliminator ([outer],
-     outermost role first);
-   - variables pointing at argument/IH binders are re-indexed into the
-     branch-binder-only frame.
-
-   A piece is built in the frame [outer_roles @ branch_binders_in_scope]
-   where [outer_roles] has [outer_n] entries; [depth] is the number of
-   branch binders already in scope for that piece. *)
 let rec substitute_outer outer depth tm =
   match tm with
   | Term.Variable i ->
@@ -258,15 +242,6 @@ let motive_ty (elim : Eliminator.t) ind_id lvls params =
   let fam = Term.Pi.fold (bads elim.index_count) Term.Bad in
   Eliminator.Type.layout ind_id params fam lvls (Level.join_all lvls)
 
-(* The motive is the goal generalised over what the case matches on: the
-   scrutinee and the family's indices. Matching on [n] and proving
-   [Nat.zero * n = Nat.zero] means each branch's goal is about that branch's
-   own value, not the outer [n] -- otherwise [Nat.zero * n] can never reduce
-   and no branch can be proved. A scrutinee that is not a variable cannot be
-   abstracted, so it stays as it is. *)
-(* Generalising is only sound when the variables are distinct: repeated or
-   non-variable indices cannot be abstracted, and the goal then keeps them as
-   it is. *)
 let rec distinct_vars = function
   | [] -> Some []
   | Term.Variable i :: rest -> (
@@ -307,4 +282,3 @@ let elaborate infer check st scrut cases expected span =
   | None ->
       State.report st (Expected_inductive scrut_ty) span;
       (st, Term.Bad)
-

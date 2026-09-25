@@ -48,7 +48,7 @@ module Reduction = struct
 
     (k, tms)
 
-  let of_poly (k, tms) =
+  let of_polynomial (k, tms) =
     let max a b = Max (a, b) in
     let level_of_tm n = function
       | Variable i -> succ_n n (Variable i)
@@ -59,7 +59,7 @@ module Reduction = struct
     let lvls = if k >= 0 then succ_n k Zero :: lvls else lvls in
     match List.rev lvls with [] -> Zero | l :: ls -> List.fold_left max l ls
 
-  let normalise l = to_polynomial l |> of_poly
+  let normalise l = to_polynomial l |> of_polynomial
 end
 
 module Relation = struct

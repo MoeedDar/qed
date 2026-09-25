@@ -10,11 +10,10 @@ let add st nm decl =
   (st, env.id)
 
 let add_definition st flags nm params term typ =
-  let term = Term_meta_context.instantiate st.term_meta_context term in
-  let params =
-    List.map (Term_meta_context.instantiate st.term_meta_context) params
-  in
-  let typ = Term_meta_context.instantiate st.term_meta_context typ in
+  let inst = Term_meta_context.instantiate st.term_meta_context in
+  let term = inst term in
+  let params = List.map inst params in
+  let typ = inst typ in
   let decl = Declaration.make_define params term typ in
   let st, id = add st nm decl in
   let st = Implicits.set st id flags in

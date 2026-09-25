@@ -27,7 +27,7 @@ let rec infer st expr =
   | Sort n -> infer_sort_expression st expr n
   | Application (f, x) -> infer_application st expr f x
   | Pi (x, m) -> infer_pi st x m
-  | Lambda (x, m) -> infer_lam st x m
+  | Lambda (x, m) -> infer_lambda st x m
   | Let (n, x, m) -> infer_let st n x m
   | Case (scrut, cases) -> infer_case st expr scrut cases
 
@@ -112,7 +112,7 @@ and infer_pi st bind body =
   let lvl = Level.Max (dom_lvl, cod_lvl) in
   (st, Pi (dom, cod), Sort lvl)
 
-and infer_lam st bind body =
+and infer_lambda st bind body =
   let st, dom, _dom_lvl = infer_domain st bind in
   let st, body, body_ty, _cod_lvl = infer_codomain st bind dom body in
   (st, Lambda (dom, body), Pi (dom, body_ty))

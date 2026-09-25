@@ -10,6 +10,7 @@ type entry = {
 
 let entry local typ span = { local; typ; term = None; span }
 let term e = e.term
+let context e = e.local.types
 
 type t = entry Id_map.t
 
@@ -22,19 +23,15 @@ let set t id tm =
   let entry = Option.get (find t id) in
   Id_map.set t id { entry with term = Some tm }
 
-let context e = e.local.types
-
 let force t tm =
   match tm with
   | Term.Meta_variable id -> Option.value (find_term t id) ~default:tm
   | _ -> tm
 
-let rec instantiate t tm =
-  match tm with
-  | Term.Meta_variable id -> (
-      match find_term t id with Some value -> instantiate t value | None -> tm)
+let rec instantiate t = function
+  | Term.Meta_variable id as tm -> (
+      match find_term t id with Some x -> instantiate t x | None -> tm)
   | Pi (a, b) -> Pi (instantiate t a, instantiate t b)
   | Lambda (a, b) -> Lambda (instantiate t a, instantiate t b)
-  | Application (a, b) ->
-      Application (instantiate t a, instantiate t b)
+  | Application (a, b) -> Application (instantiate t a, instantiate t b)
   | tm -> tm

@@ -108,7 +108,7 @@ and unify ctx left right =
   let right = Term_meta_context.force ctx.terms right in
   if Term.Relation.equals left right then solved ctx
   else
-    let left = Reduction.norm (term_metas ctx) ctx.environment left in
-    let right = Reduction.norm (term_metas ctx) ctx.environment right in
+    let left = Reduction.normalise (term_metas ctx) ctx.environment left in
+    let right = Reduction.normalise (term_metas ctx) ctx.environment right in
     if Term.Relation.equals left right then solved ctx
     else unify_rigid ctx left right
