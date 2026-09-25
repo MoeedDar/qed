@@ -5,4 +5,5 @@ _build
 _scratch
 bun.lock
 dist
+lsp_js.js
 node_modules

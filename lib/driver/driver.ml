@@ -135,7 +135,7 @@ let messages r = List.map (message_text r) r.diagnostics
 let normalise r tm =
   let find_term = Term_meta_context.find_term r.terms in
   let tm = Term_meta_context.instantiate r.terms tm in
-  Reduction.norm find_term r.environment tm
+  Reduction.normalise find_term r.environment tm
 
 let global_name r id =
   match Global_context.name r.global_context id with
