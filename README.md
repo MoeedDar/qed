@@ -4,7 +4,7 @@
 
 ## Quick start
 
-Qed currently does not maintain a binary release. The language is available to try in the playground [here](https://qed.moeed-dar.workers.dev/). Alternatively, you can build **qed** from source, see [Building](#building).
+**qed** currently does not maintain a binary release. The language is available to try in the playground [here](https://qed.moeed-dar.workers.dev/). Alternatively, you can build **qed** from source, see [Building](#building).
 
 ## Example
 
@@ -55,7 +55,7 @@ bun run dev
 
 ## Status
 
-Qed is currently in the early stages of development. The language is not yet stable, and the API may change.
+**qed** is currently in the early stages of development. The language is not yet stable, and the API may change.
 
 ## Contributing
 
