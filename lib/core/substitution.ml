@@ -18,7 +18,10 @@ let abstract args tm =
   let shift d pos = d + len - pos - 1 in
   let abs d i =
     if i < d then i
-    else match var i d with Some pos -> shift d pos | None -> i
+    else
+      match var i d with
+      | Some pos -> shift d pos
+      | None -> i + len
   in
   Term.Binding.map abs 0 tm
 

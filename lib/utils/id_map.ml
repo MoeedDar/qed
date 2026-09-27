@@ -12,4 +12,5 @@ let add map value = map_add (with_next map) (next map) value
 let set map id value = if mem map id then map_add map id value else map
 let insert map id value = map_add map id value
 let find map id = Map.find_opt id map.map
+let get map id = Option.get (find map id)
 let fold map f = Map.fold f map.map

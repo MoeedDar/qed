@@ -4,9 +4,6 @@ topic: naturals
 order: 2
 ---
 
-# Mul zero
-
 ```qed
-def mul_zero (n : Nat) : Nat.zero * n = Nat.zero :=
-  _
+def mul_zero (n : Nat) : 0 * n = 0 :=
 ```

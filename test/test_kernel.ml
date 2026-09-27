@@ -4,14 +4,14 @@ open Core.Term
 let accepts name term typ =
   Alcotest.test_case name `Quick (fun () ->
       match Kernel.check Environment.empty Context.empty term typ with
-      | () -> ()
-      | exception Kernel.Error _ -> Alcotest.fail "kernel rejected a valid term")
+      | Ok () -> ()
+      | Error _ -> Alcotest.fail "kernel rejected a valid term")
 
 let rejects name term typ =
   Alcotest.test_case name `Quick (fun () ->
       match Kernel.check Environment.empty Context.empty term typ with
-      | () -> Alcotest.fail "kernel accepted an invalid term"
-      | exception Kernel.Error _ -> ())
+      | Ok () -> Alcotest.fail "kernel accepted an invalid term"
+      | Error _ -> ())
 
 let identity = Lambda (Sort Level.Zero, Variable 0)
 let identity_type = Pi (Sort Level.Zero, Sort Level.Zero)

@@ -32,19 +32,32 @@ let check source =
   List.map (convert r document) r.diagnostics
 
 let hover_variable (r : Driver.result) lc ty =
-  let str = Pretty.Render.term r.global_context lc ty in
+  let str = Driver.pretty_in r lc ty in
   "```qed\n" ^ str ^ "\n```"
 
-let hover_sort level = "```qed\nType" ^ string_of_int level ^ "\n```"
+let hover_sort level =
+  let level = Level.succ_n level Level.Zero in
+  "```qed\n" ^ Pretty.Term.level level ^ "\n```"
 
-let hover_declaration (r : Driver.result) id =
-  "```qed\n" ^ Pretty.Render.global_name r.global_context id ^ "\n```"
+let hover_declaration (r : Driver.result) names id =
+  let name = Pretty.Term.global_name r.global_context id in
+  let signature =
+    match Environment.find_type r.environment id with
+    | Some typ -> name ^ " : " ^ Driver.pretty_named r names typ
+    | None -> name
+  in
+  let value =
+    match Environment.find_value r.environment id with
+    | Some tm -> "\n  := " ^ Driver.pretty_named r names (Driver.normalise r tm)
+    | None -> ""
+  in
+  "```qed\n" ^ signature ^ value ^ "\n```"
 
 let hover_payload (r : Driver.result) = function
   | Occurrences.Variable { typ; local_context } ->
       hover_variable r local_context typ
   | Occurrences.Sort level -> hover_sort level
-  | Occurrences.Declaration id -> hover_declaration r id
+  | Occurrences.Declaration { id; names } -> hover_declaration r names id
 
 let hover_at (r : Driver.result) offset =
   match Occurrences.find r.occurrences offset with
@@ -62,11 +75,11 @@ let goal_term (r : Driver.result) tmc typ =
   Reduction.whnf find_term r.environment tm
 
 let goal_body (r : Driver.result) tmc local typ =
-  Pretty.Render.term r.global_context local (goal_term r tmc typ)
+  Driver.pretty_in r local (goal_term r tmc typ)
 
 let goal_line (r : Driver.result) tmc local typ =
   let tm = goal_term r tmc typ in
-  let body = Pretty.Render.term r.global_context local tm in
+  let body = Driver.pretty_in r local tm in
   match tm with
   | Term.Meta_variable _ -> body ^ " (type unresolved)"
   | _ -> body
@@ -82,15 +95,10 @@ let goal_context (r : Driver.result) tmc local =
   in
   go 0 []
 
-let open_goals tmc holes =
+let open_goals tmc environment =
+  let live = Term_meta_context.live tmc (Environment.terms environment) in
   let step id entry acc =
-    let is_goal = List.mem id holes in
-    match entry.Term_meta_context.term with
-    | Some _ -> acc
-    | None when is_goal ->
-        let typ = entry.Term_meta_context.typ in
-        if Term.Meta_variable.contains_bad typ then acc else entry :: acc
-    | _ -> acc
+    if List.mem_assoc id live then entry :: acc else acc
   in
   Utils.Id_map.fold tmc step []
 
@@ -116,5 +124,5 @@ let goals source =
   if r.crashed then []
   else
     let tmc = r.terms in
-    let entries = open_goals tmc r.holes |> order_goals in
+    let entries = open_goals tmc r.environment |> order_goals in
     List.map (goal_of_entry r tmc document) entries

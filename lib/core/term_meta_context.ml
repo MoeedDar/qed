@@ -11,6 +11,7 @@ type entry = {
 let entry local typ span = { local; typ; term = None; span }
 let term e = e.term
 let context e = e.local.types
+let with_term e term = { e with term = Some term }
 
 type t = entry Id_map.t
 
@@ -21,12 +22,11 @@ let find_term t id = find t id |> Option.map term |> Option.join
 
 let set t id tm =
   let entry = Option.get (find t id) in
-  Id_map.set t id { entry with term = Some tm }
+  Id_map.set t id (with_term entry tm)
 
-let force t tm =
-  match tm with
-  | Term.Meta_variable id -> Option.value (find_term t id) ~default:tm
-  | _ -> tm
+let force t = function
+  | Term.Meta_variable id as tm -> Option.value (find_term t id) ~default:tm
+  | tm -> tm
 
 let rec instantiate t = function
   | Term.Meta_variable id as tm -> (
@@ -35,3 +35,12 @@ let rec instantiate t = function
   | Lambda (a, b) -> Lambda (instantiate t a, instantiate t b)
   | Application (a, b) -> Application (instantiate t a, instantiate t b)
   | tm -> tm
+
+let unsolved t =
+  let f id e acc = match term e with None -> (id, e) :: acc | Some _ -> acc in
+  Id_map.fold t f []
+
+let live t roots =
+  unsolved t
+  |> List.filter (fun (id, _) ->
+      List.exists (Term.Meta_variable.occurs id) roots)

@@ -2,16 +2,16 @@ open Core
 open Utils
 
 type result = {
+  diagnostics : Diagnostics.message list;
+  occurrences : Source.Occurrences.t;
   environment : Environment.t;
   global_context : Global_context.t;
   local_context : Local_context.t;
-  occurrences : Source.Occurrences.t;
+  term_meta_context : Term_meta_context.t;
+  local_meta_context : Level_meta_context.t;
+  failed_constraints : Constraints.t list;
+  postponed_constraints : Constraints.t list;
   holes : int list;
-  terms : Term_meta_context.t;
-  levels : Level_meta_context.t;
-  failed_constraints : Core.Constraints.t list;
-  postponed_constraints : Core.Constraints.t list;
-  diagnostics : Diagnostics.message list;
   crashed : bool;
 }
 
@@ -46,20 +46,30 @@ let report (solution : Unification.solution) (c : Core.Constraints.t) =
   Some (Span.locate msg c.Span.span)
 
 let kernel_message (error : Kernel.error) =
-  match error with
-  | Kernel.Mismatch (actual, expected) ->
-      Diagnostics.Type_mismatch (actual, expected)
-  | Kernel.Expected_sort tm -> Diagnostics.Expected_sort tm
-  | Kernel.Expected_pi tm -> Diagnostics.Expected_pi tm
-  | Kernel.No_meta -> Diagnostics.Internal_error "kernel: unsolved metavariable"
-  | Kernel.No_bad -> Diagnostics.Internal_error "kernel: error term"
+  let detail =
+    match error with
+    | Kernel.Mismatch _ -> "type mismatch"
+    | Kernel.Expected_sort _ -> "expected a type"
+    | Kernel.Expected_pi _ -> "expected a function type"
+    | Kernel.No_meta -> "unsolved metavariable"
+    | Kernel.No_bad -> "error term"
+  in
+  Diagnostics.Internal_error ("kernel: " ^ detail)
+
+let check_one env _ declaration found =
+  match (found, Declaration.define_of declaration) with
+  | Error _, _ | Ok (), None -> found
+  | Ok (), Some d -> Kernel.check env Core.Context.empty d.term d.typ
+
+let kernel_check env = Id_map.fold env (check_one env) (Ok ())
 
 let kernel_errors env =
-  if Kernel.pending env then []
-  else
-    match Kernel.check_declarations env with
-    | None -> []
-    | Some error -> [ Span.locate (kernel_message error) Span.zero ]
+  match kernel_check env with
+  | Ok () -> []
+  | Error error -> [ Span.locate (kernel_message error) Span.zero ]
+
+let unverified env terms = Term_meta_context.live terms (Environment.terms env)
+let verified env terms = unverified env terms = []
 
 let empty =
   {
@@ -68,8 +78,8 @@ let empty =
     local_context = Local_context.empty;
     occurrences = Source.Occurrences.create ();
     holes = [];
-    terms = Term_meta_context.empty;
-    levels = Level_meta_context.empty;
+    term_meta_context = Term_meta_context.empty;
+    local_meta_context = Level_meta_context.empty;
     failed_constraints = [];
     postponed_constraints = [];
     diagnostics = [];
@@ -81,30 +91,33 @@ let result_of diags ctx source =
   let elaboration = Elaboration.elaborate ctx.elaboration cmds in
   let elab = Elaboration.result elaboration in
   let solution = solve elab in
+  let instantiate = Term_meta_context.instantiate solution.terms in
+  let environment = Environment.instantiate instantiate elab.environment in
   let elaboration_messages = Diagnostics.diagnostics diags in
   let reported = List.filter_map (report solution) solution.failed in
   let certified =
     match elaboration_messages @ reported with
     | _ :: _ -> []
-    | [] -> kernel_errors elab.environment
+    | [] when not (verified environment solution.terms) -> []
+    | [] -> kernel_errors environment
   in
   {
-    environment = elab.environment;
+    environment;
     global_context = elab.global_context;
     local_context = elab.local_context;
     occurrences = elab.occurrences;
     holes = elab.holes;
-    terms = solution.terms;
-    levels = solution.levels;
+    term_meta_context = solution.terms;
+    local_meta_context = solution.levels;
     failed_constraints = solution.failed;
     postponed_constraints = solution.postponed;
     diagnostics = elaboration_messages @ reported @ certified;
     crashed = false;
   }
 
-let protect diags ctx source =
+let protect diags ctx src =
   Printexc.record_backtrace true;
-  try result_of diags ctx source
+  try result_of diags ctx src
   with e ->
     let msg =
       Printf.sprintf "%s\n%s" (Printexc.to_string e) (Printexc.get_backtrace ())
@@ -112,19 +125,19 @@ let protect diags ctx source =
     Diagnostics.report diags (Internal_error msg) Span.zero;
     { empty with diagnostics = Diagnostics.diagnostics diags }
 
-let run_in ctx source =
+let run_in ctx src =
   let diags = Diagnostics.create () in
-  protect diags ctx source
+  protect diags ctx src
 
-let run source =
+let run src =
   let diags = Diagnostics.create () in
-  protect diags (context_of diags) source
+  protect diags (context_of diags) src
 
 let render_context r =
   {
     Pretty.Diagnostics.global_context = r.global_context;
     local_context = r.local_context;
-    terms = r.terms;
+    terms = r.term_meta_context;
   }
 
 let message_text r (msg : Diagnostics.message) =
@@ -133,8 +146,8 @@ let message_text r (msg : Diagnostics.message) =
 let messages r = List.map (message_text r) r.diagnostics
 
 let normalise r tm =
-  let find_term = Term_meta_context.find_term r.terms in
-  let tm = Term_meta_context.instantiate r.terms tm in
+  let find_term = Term_meta_context.find_term r.term_meta_context in
+  let tm = Term_meta_context.instantiate r.term_meta_context tm in
   Reduction.normalise find_term r.environment tm
 
 let global_name r id =
@@ -142,22 +155,23 @@ let global_name r id =
   | Some n -> n
   | None -> "?" ^ string_of_int id
 
-let local_names r =
-  let lc = r.local_context in
-  fun i -> Local_context.find_name lc i
+let pretty_in r lc tm =
+  let tm = Term_meta_context.instantiate r.term_meta_context tm in
+  Pretty.Term.term r.global_context lc.Local_context.names tm
 
-let pretty r tm =
-  let tm = Term_meta_context.instantiate r.terms tm in
-  Pretty.Render.term r.global_context r.local_context tm
+let pretty_named r names tm =
+  let tm = Term_meta_context.instantiate r.term_meta_context tm in
+  Pretty.Term.term r.global_context names tm
 
-let pretty_normalised r tm =
-  Pretty.Render.term r.global_context r.local_context (normalise r tm)
+let pretty r tm = pretty_in r r.local_context tm
+let pretty_normalised r tm = pretty_in r r.local_context (normalise r tm)
+let pretty_closed r tm = pretty_in r Local_context.empty tm
 
-let value_of r name =
-  let* id = Global_context.find r.global_context name in
-  let* tm = Environment.get_value r.environment id in
+let value_of r nm =
+  let* id = Global_context.find r.global_context nm in
+  let* tm = Environment.find_value r.environment id in
   Some (normalise r tm)
 
-let type_of r name =
-  let* id = Global_context.find r.global_context name in
-  Environment.get_type r.environment id
+let type_of r nm =
+  let* id = Global_context.find r.global_context nm in
+  Environment.find_type r.environment id

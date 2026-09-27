@@ -8,7 +8,7 @@ let qualify st nm = if st.namespace = "" then nm else st.namespace ^ "." ^ nm
 
 let global st nm =
   let* id = Global_context.find st.global_context nm in
-  let* ty = Environment.get_type st.environment id in
+  let* ty = Environment.find_type st.environment id in
   Some (Term.Constant (id, []), ty)
 
 let global_qualified st nm = global st (qualify st nm)

@@ -1,3 +1,5 @@
-let rec equal tmc env tm tm' =
-  let whnf = Reduction.whnf tmc env in
-  (whnf tm, whnf tm') |> Term.Relation.lift (equal tmc env)
+let equal tmc env tm tm' =
+  let norm = Reduction.normalise tmc env in
+  let tm = norm tm in
+  let tm' = norm tm' in
+  Term.Relation.equals tm tm'
